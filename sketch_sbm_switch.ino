@@ -156,7 +156,7 @@ void mqttInit() {
 
 void IRAM_ATTR ButtonISR(){
    portENTER_CRITICAL_ISR(&mux);
-   state_mode = !state_mode
+   state_mode = !state_mode;
    portEXIT_CRITICAL_ISR(&mux);
   }
 
