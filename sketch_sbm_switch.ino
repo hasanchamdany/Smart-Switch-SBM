@@ -44,9 +44,12 @@ float vccVal = 0;
 
 // Button
 const int BtnPinMode = 2;
+int buttonState = 0;
+int button_time = 0;
+int last_button_time = 0;
 
 // Interrupt
-portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+//portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 
 
 void relayInit()
@@ -154,21 +157,27 @@ void mqttInit() {
   client.setCallback(callback);
 }
 
-void IRAM_ATTR ButtonISR(){
-   portENTER_CRITICAL_ISR(&mux);
-   state_mode = !state_mode;
-   portEXIT_CRITICAL_ISR(&mux);
-  }
+// ISR untuk Interrupt
+//void IRAM_ATTR ButtonISR(){
+//  button_time = millis();
+//  if(button_time - last_button_time > 250){
+//    portENTER_CRITICAL_ISR(&mux);
+//    state_mode = !state_mode;
+//    last_button_time = button_time
+//    portEXIT_CRITICAL_ISR(&mux);
+//    }
+//  }
 
 void setup()
 {
   Serial.begin(9600);
   pinMode(ssrPin, OUTPUT);
-  pinMode(BtnPinMOde,INPUT_PULLUP);
+  pinMode(BtnPinMode,INPUT_PULLUP);
   relayInit();
   mqttInit();
   toggleAllRelay(true);
-  attachInterrupt(digitalPinToInterrupt(BtnPinMOde), ButtonISR, FALLING);
+  // attach Interrupt
+//  attachInterrupt(digitalPinToInterrupt(BtnPinMode), ButtonISR, CHANGE);
   
 }
 
@@ -179,8 +188,9 @@ void loop()
   
   Serial.println(state_mode);
   vccVal = analogRead(VCCPin);
-
-  if(vccVal > 2000){
+//  buttonState = digitalRead(BtnPinMode);
+  
+  if(vccVal > 2000 ){
     Serial.println("nyala");
     toggleRelay(ssrPin, true);
   } else {
