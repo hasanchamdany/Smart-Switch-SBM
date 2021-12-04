@@ -4,11 +4,11 @@
 #include <dummy.h>
 
 // definisi wifi
-const char *ssid = "huplaa";
-const char *password = "super12345";
+const char *ssid = "HASANSBM";
+const char *password = "HASANSBM";
 
 // digunakan local host laptop dan digunakan untuk nanti membuka Dashboard di Handphone
-const char *mqtt_server = "192.168.43.19";
+const char *mqtt_server = "192.168.137.1";
 const int mqtt_port = 1883;
 
 // relay state
@@ -32,15 +32,13 @@ int state_lamp_3 = 0;
 int state_lamp_4 = 0;
 
 // relay
-int relayState = off;
-const int relay[] = {33, 25, 26, 27};
-const int VCCPin = 35;
-//int relayState[] = {relay, relay, off, off};
+const int relayPin[] = {27, 33};
+
 
 // ssr relay
-const int ssrPin = 23;
-int ssrState = off;
-float vccVal = 0;
+const int ssrPin[] = {22, 23};
+const int switchPin[] = {34, 36};
+//float ssrVal[] = {0,0};
 
 // Button
 const int BtnPinMode = 2;
@@ -50,31 +48,6 @@ int last_button_time = 0;
 
 // Interrupt
 //portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
-
-
-void relayInit()
-{
-  for (int i = 0; i < 4; ++i)
-  {
-    pinMode(relay[i], OUTPUT);
-    digitalWrite(relay[i], off);
-  }
-}
-
-void toggleAllRelay(int paramsRelay)
-{
-  relayState = paramsRelay;
-  for (int i = 0; i < 4; ++i)
-  {
-    digitalWrite(relay[i], relayState);
-  }
-}
-
-void toggleRelay(int pin, int paramsRelay)
-{
-//  ssrState = paramsRelay;
-  digitalWrite(pin, paramsRelay);
-}
 
 void mqttconnect()
 {
@@ -130,11 +103,9 @@ void callback(char *topic, byte *message, unsigned int length)
     }
   } else if (String(topic) == TOPIC_LAMP_1)
   {
-    Serial.println("masuk lamp 1");
     state_lamp_1 = messageTemp == "true" ? HIGH : LOW;
   } else if (String(topic) == TOPIC_LAMP_2)
   {
-    Serial.println("masuk lamp 2");
     state_lamp_2 = messageTemp == "true" ? HIGH : LOW;
   }
 }
@@ -157,45 +128,92 @@ void mqttInit() {
   client.setCallback(callback);
 }
 
-// ISR untuk Interrupt
-//void IRAM_ATTR ButtonISR(){
-//  button_time = millis();
-//  if(button_time - last_button_time > 250){
-//    portENTER_CRITICAL_ISR(&mux);
-//    state_mode = !state_mode;
-//    last_button_time = button_time
-//    portEXIT_CRITICAL_ISR(&mux);
-//    }
-//  }
+void init()
+{
+  // relay
+  pinMode(relayPin[0], OUTPUT);
+  pinMode(relayPin[1], OUTPUT);
+  digitalWrite(relayPin[0], LOW);
+  digitalWrite(relayPin[1], LOW);
+
+  //ssr
+  pinMode(ssrPin[0], OUTPUT);
+  pinMode(ssrPin[1], OUTPUT);
+
+  // mode
+  state_mode = "MANUAL";
+
+}
+
+void toggleAllRelay(int paramsRelay)
+{
+  digitalWrite(relayPin[0], paramsRelay);
+  digitalWrite(relayPin[1], paramsRelay);
+}
+
+void toggleRelay(int pin, int paramsRelay)
+{
+  digitalWrite(pin, paramsRelay);
+}
+
+void ssrHandle(float paramsSSRVal, int paramsSSRPin) {
+  if (paramsSSRVal > 2000 ) {
+    Serial.println("nyala");
+    toggleRelay(paramsSSRPin, true);
+  } else {
+    Serial.println("mati");
+    toggleRelay(paramsSSRPin, false);
+  }
+}
+
+void ssr() {
+  // read vcc``
+  float val1 = analogRead(36);
+  delay(10);
+  val1 = analogRead(36);
+  delay(10);
+  Serial.println();
+
+  //  Serial.println("Status SSR");
+
+  // ssr 1
+  Serial.print("SSR 1: ");
+  Serial.print(val1);
+  Serial.print("; ");
+  //  ssrHandle(val1, ssrPin[0]);
+
+  delay(1000);
+  float val2 = analogRead(15);
+  delay(10);
+  val2 = analogRead(15);
+  delay(10);
+
+  // ssr 2
+  Serial.print("SSR 2: ");
+  Serial.print(val2);
+  Serial.print("; ");
+  //  ssrHandle(val2, ssrPin[1]);
+}
 
 void setup()
 {
-  Serial.begin(9600);
-  pinMode(ssrPin, OUTPUT);
-  pinMode(BtnPinMode,INPUT_PULLUP);
-  relayInit();
+  Serial.begin(115200);
+  init();
   mqttInit();
-  toggleAllRelay(true);
-  // attach Interrupt
-//  attachInterrupt(digitalPinToInterrupt(BtnPinMode), ButtonISR, CHANGE);
-  
 }
 
 void loop()
-{  
-  mqttconnect();
-  client.loop();
-  
-  Serial.println(state_mode);
-  vccVal = analogRead(VCCPin);
-//  buttonState = digitalRead(BtnPinMode);
-  
-  if(vccVal > 2000 ){
-    Serial.println("nyala");
-    toggleRelay(ssrPin, true);
-  } else {
-    Serial.println("mati");
-    toggleRelay(ssrPin, false);
-  }
-  delay(200);
+{
+  //  // testing
+  //  toggleAllRelay(true);
+  //  delay(2000);
+  //  toggleAllRelay(false);
+  //  delay(2000);
+
+//  mqttconnect();
+//  client.loop();
+//  Serial.println(state_mode);
+
+  ssr();
+//  delay(200);
 }
